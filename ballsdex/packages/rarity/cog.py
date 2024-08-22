@@ -145,7 +145,7 @@ class Rarity(commands.GroupCog, name="rarity"):
         shiny: bool = False,
     ):
         """
-        View the rarity of a specific ball - created by Hallow
+        View the rarity of a specific monster - created by Hallow
         """
         
         rarity = ball.rarity
