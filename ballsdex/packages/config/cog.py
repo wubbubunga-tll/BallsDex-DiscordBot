@@ -24,6 +24,12 @@ activation_embed = discord.Embed(
     "**Not respecting these rules will lead to a blacklist**",
 )
 
+lowmembers_embed = discord.Embed(
+    colour=0xD90000,
+    title=f"{settings.bot_name} activation",
+    description=f"To enable {settings.bot_name} in your server, you need to have at least 10 members.\n\n"
+    "Please ensure your server meets this requirement before attempting to activate the bot."
+)
 
 @app_commands.default_permissions(manage_guild=True)
 @app_commands.guild_only()
@@ -67,9 +73,14 @@ class Config(commands.GroupCog):
                 f"I need the permission to send embed links in {channel.mention}."
             )
             return
-        await interaction.response.send_message(
-            embed=activation_embed, view=AcceptTOSView(interaction, channel)
-        )
+        if not guild.member_count < 10:
+            await interaction.response.send_message(
+                embed=activation_embed, view=AcceptTOSView(interaction, channel)
+            )
+        else:
+            await interaction.response.send_message(
+                embed=lowmembers_embed
+            )
 
     @app_commands.command()
     async def disable(self, interaction: discord.Interaction):
