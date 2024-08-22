@@ -141,20 +141,20 @@ class Rarity(commands.GroupCog, name="rarity"):
     async def search(
         self,
         interaction: discord.Interaction,
-        ball: app_commands.Transform[Ball, BallTransform],
+        monster: app_commands.Transform[Ball, BallTransform],
         shiny: bool = False,
     ):
         """
         View the rarity of a specific monster - created by Hallow
         """
         
-        rarity = ball.rarity
+        rarity = monster.rarity
         
         if shiny:
             shiny_chance = 1 / 2048
             rarity *= shiny_chance
         
-        ball_name = f"Shiny {ball.country}" if shiny else ball.country
+        ball_name = f"Shiny {monster.country}" if shiny else monster.country
         formatted_rarity = format_rarity(rarity)
         
 
