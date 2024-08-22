@@ -19,11 +19,11 @@ RECTANGLE_HEIGHT = (HEIGHT // 5) * 2
 CORNERS = ((34, 261), (1393, 992))
 artwork_size = [b - a for a, b in zip(*CORNERS)]
 
-title_font = ImageFont.truetype(str(SOURCES_PATH / "ArsenicaTrial-Extrabold.ttf"), 170)
-capacity_name_font = ImageFont.truetype(str(SOURCES_PATH / "Bobby Jones Soft.otf"), 110)
-capacity_description_font = ImageFont.truetype(str(SOURCES_PATH / "OpenSans-Semibold.ttf"), 75)
-stats_font = ImageFont.truetype(str(SOURCES_PATH / "Bobby Jones Soft.otf"), 130)
-credits_font = ImageFont.truetype(str(SOURCES_PATH / "arial.ttf"), 40)
+title_font = ImageFont.truetype(str(SOURCES_PATH / "Hobeaux-Bold.ttf"), 170)
+capacity_name_font = ImageFont.truetype(str(SOURCES_PATH / "Hobeaux-Bold.ttf"), 110)
+capacity_description_font = ImageFont.truetype(str(SOURCES_PATH / "CooperFiveOpti-Black.ttf"), 75)
+stats_font = ImageFont.truetype(str(SOURCES_PATH / "Hobeaux-Bold.ttf"), 130)
+credits_font = ImageFont.truetype(str(SOURCES_PATH / "OpenSans-Semibold.ttf"), 40)
 
 
 def draw_card(ball_instance: "BallInstance"):
@@ -43,13 +43,7 @@ def draw_card(ball_instance: "BallInstance"):
     )
 
     draw = ImageDraw.Draw(image)
-    draw.text(
-        (50, 20),
-        ball.short_name or ball.country,
-        font=title_font,
-        stroke_width=2,
-        stroke_fill=(0, 0, 0, 255),
-    )
+    draw.text((50, 20), ball.short_name or ball.country, font=title_font)
     for i, line in enumerate(textwrap.wrap(f"Ability: {ball.capacity_name}", width=26)):
         draw.text(
             (100, 1050 + 100 * i),
@@ -85,10 +79,10 @@ def draw_card(ball_instance: "BallInstance"):
         anchor="ra",
     )
     draw.text(
-        (30, 1870),
+        (30, 1847),
         # Modifying the line below is breaking the licence as you are removing credits
         # If you don't want to receive a DMCA, just don't
-        "Created by El Laggron\n" f"Artwork author: {ball.credits}",
+        "BallsDex created by El Laggron\n" "FanmadeDex owned by Hallow\n" f"Monster owner: {ball.credits}",
         font=credits_font,
         fill=(0, 0, 0, 255),
         stroke_width=0,
