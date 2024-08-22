@@ -46,17 +46,21 @@ class Claim(commands.Cog):
             if elapsed_time < COOLDOWN_DURATION:
                 remaining_time = COOLDOWN_DURATION - elapsed_time
                 hours, remainder = divmod(remaining_time.seconds, 3600)
-                minutes, _ = divmod(remainder, 60)
+                minutes, seconds = divmod(remainder, 60)
                 
                 if hours > 0:
                     await interaction.response.send_message(
-                        f'You cannot claim for {hours} hour{"s" if hours != 1 else ""} and {minutes} minute{"s" if minutes != 1 else ""}',
+                        f'You cannot claim for {hours} hour{"s" if hours != 1 else ""}, {minutes} minute{"s" if minutes != 1 else ""}, and {seconds} second{"s" if seconds != 1 else ""}',
                         ephemeral=True
                     )
-                    
+                elif minutes > 0:
+                    await interaction.response.send_message(
+                        f'You cannot claim for {minutes} minute{"s" if minutes != 1 else ""} and {seconds} second{"s" if seconds != 1 else ""}',
+                        ephemeral=True
+                    )
                 else:
                     await interaction.response.send_message(
-                        f'You cannot claim for {minutes} minute{"s" if minutes != 1 else ""}',
+                        f'You cannot claim for {seconds} second{"s" if seconds != 1 else ""}',
                         ephemeral=True
                     )
                 return
