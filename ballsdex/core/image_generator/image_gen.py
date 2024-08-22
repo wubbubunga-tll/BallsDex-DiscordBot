@@ -82,7 +82,7 @@ def draw_card(ball_instance: "BallInstance"):
         (30, 1847),
         # Modifying the line below is breaking the licence as you are removing credits
         # If you don't want to receive a DMCA, just don't
-        "BallsDex created by El Laggron\n" "FanmadeDex owned by Hallow\n" f"Monster owner: {ball.credits}",
+        "FanmadeDex owned by Hallow\n" "BallsDex created by El Laggron\n" f"Monster owner: {ball.credits}",
         font=credits_font,
         fill=(0, 0, 0, 255),
         stroke_width=0,
