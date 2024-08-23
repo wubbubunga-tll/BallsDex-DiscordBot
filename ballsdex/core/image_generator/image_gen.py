@@ -53,7 +53,7 @@ def draw_card(ball_instance: "BallInstance"):
             stroke_width=2,
             stroke_fill=(0, 0, 0, 255),
         )
-    for i, line in enumerate(textwrap.wrap(ball.capacity_description, width=32)):
+    for i, line in enumerate(textwrap.wrap(ball.capacity_description, width=26)):
         draw.text(
             (60, 1300 + 80 * i),
             line,
