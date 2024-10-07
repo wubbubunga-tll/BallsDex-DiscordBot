@@ -29,38 +29,6 @@ class CountryBall:
         cb = random.choices(population=countryballs, weights=rarities, k=1)[0]
         return cls(cb)
 
-    @classmethod
-    async def get_random_scaled(cls, completion_percentage: float):
-        countryballs = list(filter(lambda m: m.enabled, balls.values()))
-        if not countryballs:
-            raise RuntimeError("No ball to spawn")
-
-        rarities = [x.rarity for x in countryballs]
-        scaled_rarities = cls.adjust_rarity_weights(rarities, completion_percentage)
-
-        cb = random.choices(population=countryballs, weights=scaled_rarities, k=1)[0]
-        return cls(cb)
-
-    @staticmethod
-    def adjust_rarity_weights(rarities, completion_percentage):
-        max_scale_common = 0.50
-        max_scale_rare = 0.30
-
-        scaling_factor_common = (completion_percentage / 100) * max_scale_common
-        scaling_factor_rare = (1 - (completion_percentage / 100)) * max_scale_rare
-
-        adjusted_rarities = []
-        for rarity in rarities:
-            if rarity >= 45:
-                adjusted_rarity = rarity * (1 + scaling_factor_common)
-            else:
-                adjusted_rarity = rarity * (1 - scaling_factor_rare)
-
-            adjusted_rarities.append(adjusted_rarity)
-
-        total_rarity = sum(adjusted_rarities)
-        return [r / total_rarity for r in adjusted_rarities]
-
     async def spawn(self, channel: discord.TextChannel) -> bool:
         """
         Spawn a countryball in a channel.
