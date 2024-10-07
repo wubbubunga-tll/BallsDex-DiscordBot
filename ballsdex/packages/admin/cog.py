@@ -1144,6 +1144,7 @@ class Admin(commands.GroupCog):
         interaction: discord.Interaction,
         *,
         name: app_commands.Range[str, None, 48],
+        short_name: app_commands.Range[str, None, 12] = None,
         regime: RegimeTransform,
         health: int,
         attack: int,
@@ -1164,6 +1165,8 @@ class Admin(commands.GroupCog):
         Parameters
         ----------
         name: str
+        short_name: str
+            Optional shortened version of the country name (max 12 chars)
         regime: Regime
         economy: Economy | None
         health: int
@@ -1232,6 +1235,7 @@ class Admin(commands.GroupCog):
         try:
             ball = await Ball.create(
                 country=name,
+                short_name=short_name,
                 regime=regime,
                 economy=economy,
                 health=health,
@@ -1262,7 +1266,7 @@ class Admin(commands.GroupCog):
                 f"Successfully created a {settings.collectible_name} with ID {ball.pk}! "
                 "The internal cache was reloaded.\n"
                 f"{missing_default}\n"
-                f"{name=} regime={regime.name} economy={economy.name if economy else None} "
+                f"{name=} {short_name=} regime={regime.name} economy={economy.name if economy else None} "
                 f"{health=} {attack=} {rarity=} {enabled=} {tradeable=} emoji={emoji}",
                 files=files,
             )
