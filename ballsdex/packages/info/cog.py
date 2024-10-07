@@ -107,8 +107,8 @@ class Info(commands.Cog):
             f"**{balls_instances_count:,}** {settings.collectible_name}s\n"
             f"**{len(self.bot.guilds):,}** servers playing\n\n"
 
-            f"This bot is owned by **Hallow**, it has taken a ton of effort to add **{balls_count:,}** monsters, consider subscribing to me on "
-            "[YouTube](https://www.youtube.com/@hallowthehawlo)!\n\n"
+            f"This bot is owned by **Venus**, it has taken a ton of effort to add **{balls_count:,}** monsters, consider subscribing to me on "
+            "[YouTube](https://www.youtube.com/@venus.kryvak)!\n\n"
 
             "BallsDex, what FanmadeDex is fully based on was made by **El Laggron**, consider supporting him on his "
             "[Patreon](https://patreon.com/retke)!\n\n"
