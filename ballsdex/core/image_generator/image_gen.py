@@ -25,19 +25,19 @@ def get_scaled_font_size(text: str, max_width: int, max_height: int, font_path: 
     font_size = starting_size
     font = ImageFont.truetype(str(font_path), font_size)
     dummy_draw = ImageDraw.Draw(Image.new('RGBA', (1, 1)))
-    wrapped_text = textwrap.wrap(text, width=35)
+    wrapped_text = textwrap.wrap(text, width=28)
     
-    if len(wrapped_text) >= 5:
+    if len(wrapped_text) >= 4:
         font_size = max(min_size, starting_size - (10 * (len(wrapped_text) - 4)))
         font = ImageFont.truetype(str(font_path), font_size)
-        wrapped_text = textwrap.wrap(text, width=40)
+        wrapped_text = textwrap.wrap(text, width=25)
         while len(wrapped_text) > 7:
             font_size -= 2
             if font_size < min_size:
                 font_size = min_size
                 break
             font = ImageFont.truetype(str(font_path), font_size)
-            wrapped_text = textwrap.wrap(text, width=40)
+            wrapped_text = textwrap.wrap(text, width=25)
     else:
         text_height = len(wrapped_text) * font_size * 1.1
         while text_height > max_height or any(dummy_draw.textlength(line, font=font) > max_width for line in wrapped_text):
@@ -46,7 +46,7 @@ def get_scaled_font_size(text: str, max_width: int, max_height: int, font_path: 
                 font_size = min_size
                 break
             font = ImageFont.truetype(str(font_path), font_size)
-            wrapped_text = textwrap.wrap(text, width=35)
+            wrapped_text = textwrap.wrap(text, width=28)
             text_height = len(wrapped_text) * font_size * 1.1
     
     return font_size, wrapped_text
@@ -94,7 +94,7 @@ def draw_card(ball_instance: "BallInstance"):
     line_spacing = 1.05 if len(wrapped_ability) >= 5 else 1.1
     for i, line in enumerate(wrapped_ability):
         draw.text(
-            (60, ability_y + (i * ability_font_size * line_spacing)),
+            (50, ability_y + (i * ability_font_size * line_spacing)),
             line,
             font=dynamic_ability_font,
             fill=(230, 230, 230, 255),
@@ -106,7 +106,7 @@ def draw_card(ball_instance: "BallInstance"):
     desc_spacing = 1.05 if len(wrapped_desc) >= 5 else 1.1
     for i, line in enumerate(wrapped_desc):
         draw.text(
-            (60, desc_y + (i * desc_font_size * desc_spacing)),
+            (50, desc_y + (i * desc_font_size * desc_spacing)),
             line,
             font=dynamic_desc_font,
             stroke_width=1,
