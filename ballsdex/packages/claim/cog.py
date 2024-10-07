@@ -99,7 +99,7 @@ class Claim(commands.Cog):
         await interaction.followup.send(message)
 
 
-    @app_commands.command(name="claim", description="Claim a random monster - made by Hallow")
+    @app_commands.command(name="claim", description="Claim a random monster - made by Venus")
     async def claim(self, interaction: discord.Interaction):
         user_id = interaction.user.id
         now = datetime.now()
@@ -136,7 +136,7 @@ class Claim(commands.Cog):
         cob = await CountryBall.get_random()
         await self.give_monster(interaction, [cob], "free")
 
-    @app_commands.command(name="boostclaim", description="Claim two random monsters - made by Hallow")
+    @app_commands.command(name="boostclaim", description="Claim two random monsters - made by Venus")
     @app_commands.checks.has_any_role(1274848370833494017)
     async def boostclaim(self, interaction: discord.Interaction):
         user_id = interaction.user.id
@@ -175,7 +175,7 @@ class Claim(commands.Cog):
         cobs = [await CountryBall.get_random() for _ in range(num_monsters)]
         await self.give_monster(interaction, cobs, "boost")
     
-    @app_commands.command(name="staffclaim", description="Claim one or two random monsters - made by Hallow")
+    @app_commands.command(name="staffclaim", description="Claim one or two random monsters - made by Venus")
     @app_commands.checks.has_any_role(*settings.root_role_ids, *settings.admin_role_ids)
     async def staffclaim(self, interaction: discord.Interaction):
         user_id = interaction.user.id
