@@ -30,10 +30,17 @@ async def lower_catch_names(
     using_db: "BaseDBAsyncClient | None" = None,
     update_fields: Iterable[str] | None = None,
 ):
-    if instance.catch_names:
-        instance.catch_names = ";".join(
-            [x.strip() for x in instance.catch_names.split(";")]
-        ).lower()
+    catch_names = [] if instance.catch_names is None else instance.catch_names.split(";")
+    
+    catch_names = [x.strip().lower() for x in catch_names]
+    
+    if instance.country.lower() not in catch_names:
+        catch_names.append(instance.country.lower())
+    
+    if instance.short_name and instance.short_name.lower() not in catch_names:
+        catch_names.append(instance.short_name.lower())
+    
+    instance.catch_names = ";".join(filter(None, catch_names))
 
 
 class DiscordSnowflakeValidator(validators.Validator):
