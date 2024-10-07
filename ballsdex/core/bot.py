@@ -129,7 +129,7 @@ class BallsDexBot(commands.AutoShardedBot):
         # guild_messages: spawning is based on messages sent, content is not necessary
         # emojis_and_stickers: DB holds emoji IDs for the balls which are fetched from 3 servers
         intents = discord.Intents(
-            guilds=True, guild_messages=True, emojis_and_stickers=True, message_content=True
+            guilds=True, guild_messages=True, emojis_and_stickers=True
         )
 
         if settings.prometheus_enabled:
