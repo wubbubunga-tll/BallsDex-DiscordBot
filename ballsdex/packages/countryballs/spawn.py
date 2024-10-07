@@ -12,7 +12,7 @@ from ballsdex.packages.countryballs.countryball import CountryBall
 
 log = logging.getLogger("ballsdex.packages.countryballs")
 
-SPAWN_CHANCE_RANGE = (40, 55)
+SPAWN_CHANCE_RANGE = (15, 20)
 
 CachedMessage = namedtuple("CachedMessage", ["content", "author_id"])
 
@@ -103,13 +103,13 @@ class SpawnManager:
         if not guild.member_count:
             return
         elif guild.member_count < 5:
-            multiplier = 0.1
+            multiplier = 0.8
         elif guild.member_count < 100:
             multiplier = 0.8
         elif guild.member_count < 1000:
-            multiplier = 0.5
+            multiplier = 0.8
         else:
-            multiplier = 0.2
+            multiplier = 0.8
         chance = cooldown.chance - multiplier * (delta // 60)
 
         # manager cannot be increased more than once per 5 seconds
@@ -121,7 +121,7 @@ class SpawnManager:
             return
 
         # at this point, the goal is reached
-        if delta < 600:
+        if delta < 400:
             # wait for at least 10 minutes before spawning
             return
 
