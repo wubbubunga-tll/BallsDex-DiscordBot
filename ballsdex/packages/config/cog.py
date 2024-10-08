@@ -65,7 +65,6 @@ class Config(commands.GroupCog):
             Whether to config a server to suppress wrong name and error messages.
         """
         user = cast(discord.Member, interaction.user)
-<<<<<<< HEAD
         if not user.guild_permissions.manage_guild:
             await interaction.response.send_message(
                 "You need the permission to manage the server to use this."
@@ -94,25 +93,6 @@ class Config(commands.GroupCog):
             await interaction.response.send_message(
                 embed=lowmembers_embed
             )
-=======
-
-        if channel is None:
-            if isinstance(interaction.channel, discord.TextChannel):
-                channel = interaction.channel
-            else:
-                await interaction.response.send_message(
-                    "The current channel is not a valid text channel.", ephemeral=True
-                )
-                return
-
-        view = AcceptTOSView(interaction, channel, user, silent=silent)
-        message = await channel.send(embed=activation_embed, view=view)
-        view.message = message
-
-        await interaction.response.send_message(
-            f"The activation embed has been sent in {channel.mention}.", ephemeral=True
-        )
->>>>>>> bd/master
 
     @app_commands.command()
     @app_commands.checks.has_permissions(manage_guild=True)

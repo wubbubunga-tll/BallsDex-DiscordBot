@@ -104,15 +104,7 @@ class CountryballNamePrompt(Modal, title=f"Catch this {settings.collectible_name
             self.button.disabled = True
             await interaction.followup.edit_message(self.ball.message.id, view=self.button.view)
         else:
-<<<<<<< HEAD
             await interaction.response.send_message(f"{interaction.user.mention} \n Wrong name: {self.name.value}")
-=======
-            await interaction.followup.send(
-                f"{interaction.user.mention} Wrong name!",
-                allowed_mentions=discord.AllowedMentions(users=player.can_be_mentioned),
-                ephemeral=config.silent,
-            )
->>>>>>> bd/master
 
     async def catch_ball(
         self, bot: "BallsDexBot", user: discord.Member
