@@ -15,12 +15,11 @@ from ballsdex.core.utils.paginator import Pages
 from ballsdex.core.utils.transformers import (
     BallEnabledTransform,
     BallInstanceTransform,
-    BallTransform,
     SpecialEnabledTransform,
     TradeCommandType,
 )
 from ballsdex.packages.trade.display import TradeViewFormat
-from ballsdex.packages.trade.menu import BulkAddView, TradeMenu
+from ballsdex.packages.trade.menu import BulkAddView, TradeMenu, TradeViewMenu
 from ballsdex.packages.trade.trade_user import TradingUser
 from ballsdex.settings import settings
 
@@ -28,6 +27,7 @@ if TYPE_CHECKING:
     from ballsdex.core.bot import BallsDexBot
 
 
+@app_commands.guild_only()
 class Trade(commands.GroupCog):
     """
     Trade countryballs with other players.
@@ -116,6 +116,14 @@ class Trade(commands.GroupCog):
                 "You cannot trade with yourself.", ephemeral=True
             )
             return
+        player1, _ = await Player.get_or_create(discord_id=interaction.user.id)
+        player2, _ = await Player.get_or_create(discord_id=user.id)
+        blocked = await player1.is_blocked(player2)
+        if blocked:
+            await interaction.response.send_message(
+                "You cannot begin a trade with a user that has blocked you.", ephemeral=True
+            )
+            return
 
         trade1, trader1 = self.get_trade(interaction)
         trade2, trader2 = self.get_trade(channel=interaction.channel, user=user)  # type: ignore
@@ -174,7 +182,11 @@ class Trade(commands.GroupCog):
             return
         await interaction.response.defer(ephemeral=True, thinking=True)
         if countryball.favorite:
-            view = ConfirmChoiceView(interaction)
+            view = ConfirmChoiceView(
+                interaction,
+                accept_message=f"{settings.collectible_name.title()} added.",
+                cancel_message="This request has been cancelled.",
+            )
             await interaction.followup.send(
                 f"This {settings.collectible_name} is a favorite, "
                 "are you sure you want to trade it?",
@@ -220,7 +232,7 @@ class Trade(commands.GroupCog):
     async def bulk_add(
         self,
         interaction: discord.Interaction,
-        ball: BallEnabledTransform | None = None,
+        countryball: BallEnabledTransform | None = None,
         shiny: bool | None = None,
         special: SpecialEnabledTransform | None = None,
     ):
@@ -229,7 +241,7 @@ class Trade(commands.GroupCog):
 
         Parameters
         ----------
-        ball: Ball
+        countryball: Ball
             The countryball you would like to filter the results to
         shiny: bool
             Filter the results to shinies
@@ -249,8 +261,8 @@ class Trade(commands.GroupCog):
             )
             return
         filters = {}
-        if ball:
-            filters["ball"] = ball
+        if countryball:
+            filters["ball"] = countryball
         if shiny:
             filters["shiny"] = shiny
         if special:
@@ -259,22 +271,16 @@ class Trade(commands.GroupCog):
         balls = await BallInstance.filter(**filters).prefetch_related("ball", "player")
         if not balls:
             await interaction.followup.send(
-                f"No {settings.collectible_name}s found.", ephemeral=True
+                f"No {settings.plural_collectible_name} found.", ephemeral=True
             )
             return
-        if len(balls) < 25:
-            await interaction.followup.send(
-                f"You have less than 25 {settings.collectible_name}s, "
-                "you can use the add command instead.",
-                ephemeral=True,
-            )
-            return
+        balls = [x for x in balls if x.is_tradeable]
 
         view = BulkAddView(interaction, balls, self)  # type: ignore
         await view.start(
-            content=f"Select the {settings.collectible_name}s you want to add "
+            content=f"Select the {settings.plural_collectible_name} you want to add "
             "to your proposal, note that the display will wipe on pagination however "
-            f"the selected {settings.collectible_name}s will remain."
+            f"the selected {settings.plural_collectible_name} will remain."
         )
 
     @app_commands.command(extras={"trade": TradeCommandType.REMOVE})
@@ -393,16 +399,34 @@ class Trade(commands.GroupCog):
             queryset = queryset.filter(date__range=(start_date, end_date))
 
         if countryball:
-            queryset = queryset.filter(
-                Q(player1__tradeobjects__ballinstance__ball=countryball)
-                | Q(player2__tradeobjects__ballinstance__ball=countryball)
-            ).distinct()  # for some reason, this query creates a lot of duplicate rows?
+            queryset = queryset.filter(Q(tradeobjects__ballinstance__ball=countryball)).distinct()
 
-        history = await queryset.order_by(sorting.value).prefetch_related("player1", "player2")
+        history = await queryset.order_by(sorting.value).prefetch_related(
+            "player1", "player2", "tradeobjects__ballinstance__ball"
+        )
 
         if not history:
             await interaction.followup.send("No history found.", ephemeral=True)
             return
+
         source = TradeViewFormat(history, interaction.user.name, self.bot)
         pages = Pages(source=source, interaction=interaction)
         await pages.start()
+
+    @app_commands.command()
+    async def view(
+        self,
+        interaction: discord.Interaction["BallsDexBot"],
+    ):
+        """
+        View the countryballs added to an ongoing trade.
+        """
+        trade, trader = self.get_trade(interaction)
+        if not trade or not trader:
+            await interaction.response.send_message(
+                "You do not have an ongoing trade.", ephemeral=True
+            )
+            return
+
+        source = TradeViewMenu(interaction, [trade.trader1, trade.trader2], self)
+        await source.start(content="Select a user to view their proposal.")
