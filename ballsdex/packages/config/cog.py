@@ -65,11 +65,26 @@ class Config(commands.GroupCog):
             Whether to config a server to suppress wrong name and error messages.
         """
         user = cast(discord.Member, interaction.user)
+        guild = interaction.guild
+        if not guild:
+            await interaction.response.send_message("This command can only be used in a server.")
+            return
+
         if not user.guild_permissions.manage_guild:
             await interaction.response.send_message(
                 "You need the permission to manage the server to use this."
             )
             return
+
+        if channel is None:
+            if isinstance(interaction.channel, discord.TextChannel):
+                channel = interaction.channel
+            else:
+                await interaction.response.send_message(
+                    "The current channel is not a valid text channel.", ephemeral=True
+                )
+                return
+
         if not channel.permissions_for(guild.me).read_messages:
             await interaction.response.send_message(
                 f"I need the permission to read messages in {channel.mention}."
@@ -85,9 +100,9 @@ class Config(commands.GroupCog):
                 f"I need the permission to send embed links in {channel.mention}."
             )
             return
-        if not guild.member_count < 10:
+        if guild.member_count and guild.member_count >= 10:
             await interaction.response.send_message(
-                embed=activation_embed, view=AcceptTOSView(interaction, channel)
+                embed=activation_embed, view=AcceptTOSView(interaction, channel, user, silent)
             )
         else:
             await interaction.response.send_message(
