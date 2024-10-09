@@ -58,26 +58,32 @@ class Training(commands.Cog):
         
         await interaction.response.defer(thinking=True)
         
-        increase_both = random.random() < 0.10
-        increase_amount = 2 if random.random() < 0.25 else 1
+        increase_amount = 2 if random.random() < 0.05 else 1
 
         old_attack = monster.attack
         old_health = monster.health
         old_attack_bonus = monster.attack_bonus
         old_health_bonus = monster.health_bonus
 
-        if increase_both:
+        if monster.attack_bonus == 25 and monster.health_bonus == 25:
+            ball = await Ball.get(id=monster.ball_id)
+            emoji = self.bot.get_emoji(ball.emoji_id)
+            emoji_str = f"<:_:{emoji.id}>" if emoji else ""
+            await interaction.followup.send(f"{emoji_str} Your {ball.country} has reached maximum stats. No further training is possible.")
+            return
+
+        stat_to_increase = random.choice(["health", "attack"])
+        if stat_to_increase == "health" and monster.health_bonus == 25:
+            stat_to_increase = "attack"
+        elif stat_to_increase == "attack" and monster.attack_bonus == 25:
+            stat_to_increase = "health"
+
+        if stat_to_increase == "attack":
             monster.attack_bonus = min(25, monster.attack_bonus + increase_amount)
-            monster.health_bonus = min(25, monster.health_bonus + increase_amount)
-            stat_message = f"ATK and HP stats to increase by +{increase_amount}%!"
+            stat_message = f"ATK stat to increase by +{increase_amount}%!"
         else:
-            stat_to_increase = random.choice(["attack", "health"])
-            if stat_to_increase == "attack":
-                monster.attack_bonus = min(25, monster.attack_bonus + increase_amount)
-                stat_message = f"ATK stat to increase by +{increase_amount}%!"
-            else:
-                monster.health_bonus = min(25, monster.health_bonus + increase_amount)
-                stat_message = f"HP stat to increase by +{increase_amount}%!"
+            monster.health_bonus = min(25, monster.health_bonus + increase_amount)
+            stat_message = f"HP stat to increase by +{increase_amount}%!"
 
         await monster.save()
 
@@ -90,11 +96,10 @@ class Training(commands.Cog):
         emoji_str = f"<:_:{emoji.id}>" if emoji else ""
 
         message = f"{interaction.user.mention} your {emoji_str} **{ball.country}** battled against some monsters, causing its {stat_message}\n"
-
-        if old_attack_bonus != monster.attack_bonus:
-            message += f"ATK: {old_attack} → {new_attack}\n"
-        if old_health_bonus != monster.health_bonus:
-            message += f"HP: {old_health} → {new_health}\n"
+        if stat_to_increase == "attack":
+            message += f"ATK: {old_attack} → {new_attack} - ATK Bonus: {old_attack_bonus} → {monster.attack_bonus}\n"
+        elif stat_to_increase == "health":
+            message += f"HP: {old_health} → {new_health} - HP Bonus: {old_health_bonus} → {monster.health_bonus}\n"
 
         await interaction.followup.send(message.strip())
 

@@ -4,10 +4,10 @@ import logging
 import math
 import random
 from typing import TYPE_CHECKING, cast
+from prometheus_client import Counter, REGISTRY
 
 import discord
 from discord.ui import Button, Modal, TextInput, View
-from prometheus_client import Counter
 from tortoise.exceptions import DoesNotExist
 from tortoise.timezone import now as datetime_now
 
@@ -20,9 +20,12 @@ if TYPE_CHECKING:
     from ballsdex.packages.countryballs.countryball import CountryBall
 
 log = logging.getLogger("ballsdex.packages.countryballs.components")
-caught_balls = Counter(
-    "caught_cb", "Caught countryballs", ["country", "shiny", "special", "guild_size"]
-)
+if 'caught_cb' not in REGISTRY._names_to_collectors:
+    caught_balls = Counter(
+        "caught_cb", "Caught countryballs", ["country", "shiny", "special", "guild_size"]
+    )
+else:
+    caught_balls = REGISTRY._names_to_collectors['caught_cb']
 
 
 class CountryballNamePrompt(Modal, title=f"Catch this {settings.collectible_name}!"):
