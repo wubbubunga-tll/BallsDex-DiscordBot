@@ -1,20 +1,15 @@
-
-import asyncio
-import random
 import discord
 from discord import app_commands
 from discord.ext import commands
-from typing import Dict, Set, List
-from ballsdex.core.models import BallInstance, Player, Ball
-from ballsdex.settings import settings
-from tortoise.exceptions import DoesNotExist
-from ballsdex.core.utils.transformers import BallInstanceTransform
-import copy
+from typing import List, Tuple, Dict, Optional, Set
+import random
+import asyncio
 import io
-from discord.ui import Button, View
-from datetime import datetime, timedelta
 import re
-
+from datetime import datetime, timedelta
+from ballsdex.core.models import BallInstance, Player, Ball
+from ballsdex.core.utils.transformers import BallInstanceTransform
+from ballsdex.settings import settings
 
 class BattleView(discord.ui.View):
     def __init__(self, starter: discord.Member, other_player: discord.Member, bot: commands.Bot):
@@ -35,7 +30,6 @@ class BattleView(discord.ui.View):
         self.battle_exists = True
         self.current_attacker = starter
         self.default_emoji = discord.PartialEmoji(name="None", id=1293882244271964220)
-
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if not self.battle_exists:
@@ -241,7 +235,6 @@ class BattleView(discord.ui.View):
         embed.color = discord.Color.green()
         embed.clear_fields() 
 
-
         await self.message.edit(embed=embed, view=None)
 
         log_button = discord.ui.Button(label="Get Battle Log", style=discord.ButtonStyle.blurple, custom_id="battle_log")
@@ -256,15 +249,13 @@ class BattleView(discord.ui.View):
                 await self.send_battle_log(interaction.user) 
                 await interaction.response.send_message("Battle Log sent to your DMs.", ephemeral=True)
                 
-
         log_button.callback = interaction_handler
-        
-
         
         self.battle_in_progress = False
         self.cancelled = True
         self.battle_exists = False
         self.stop()
+
     async def wait_for_interaction(self, user, timeout):
         def check(interaction: discord.Interaction):
             if interaction.user != user:
@@ -309,8 +300,6 @@ class BattleView(discord.ui.View):
 
     def format_deck(self, deck):
         formatted_deck = [f"{self.get_emoji_by_id(monster['id'])} #{monster['id']:0X} {self.get_monster_name(monster['id'])} (HP: {monster['health']} | ATK: {monster['attack']})" for monster in deck]
-
-        
         return "\n".join(formatted_deck)
     
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
@@ -341,14 +330,11 @@ class BattleView(discord.ui.View):
                 color=discord.Color.orange()  
             )
             
-
             if self.message:
                 await self.message.edit(embed=embed, view=None)
             
-
             self.battle_exists = False
             self.stop()
-
 
     def get_emoji_by_id(self, monster_id: int) -> str:
         for deck in self.decks.values():
@@ -378,9 +364,7 @@ class BattleView(discord.ui.View):
         await user.send(file=log_file)
 
     def strip_emojis(self, text: str) -> str:
-
         return re.sub(r'<:[a-zA-Z0-9_]+:[0-9]+>', '', text)
-
 
 class Battle(commands.Cog):
     def __init__(self, bot):
@@ -426,6 +410,18 @@ class Battle(commands.Cog):
                     print(f"Failed to add battle commands after 3 attempts: {e}")
                     raise 
 
+    async def send_message(self, interaction: discord.Interaction, content: str, *, ephemeral: bool = False):
+        try:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(content, ephemeral=ephemeral)
+            else:
+                await interaction.followup.send(content, ephemeral=ephemeral)
+        except discord.errors.HTTPException as e:
+            if e.code == 40060:  
+                pass
+            else:
+                raise
+
     def cancel_existing_battle(self, user_id: int):
         if user_id in self.active_battles:
             battle_view = self.active_battles[user_id]
@@ -441,14 +437,15 @@ class Battle(commands.Cog):
 
     async def battle(self, interaction: discord.Interaction, opponent: discord.Member):
         if opponent.bot or opponent == interaction.user:
-            return await interaction.response.send_message("You can't battle with that user.", ephemeral=True)
+            await self.send_message(interaction, "You can't battle with that user.", ephemeral=True)
+            return
 
         if interaction.user.id in self.players_in_battle:
             self.cancel_existing_battle(interaction.user.id)
-            pass
         
         if opponent.id in self.players_in_battle:
-            return await interaction.response.send_message("That player is already in a battle.", ephemeral=True)
+            await self.send_message(interaction, "That player is already in a battle.", ephemeral=True)
+            return
 
         battle_view = BattleView(interaction.user, opponent, self.bot)
         self.active_battles[interaction.user.id] = battle_view
@@ -458,52 +455,67 @@ class Battle(commands.Cog):
 
         embed = battle_view.create_embed()
         
-        if interaction.response.is_done():
-            message = await interaction.channel.send(f"{opponent.mention}, you've been challenged to a battle!", embed=embed, view=battle_view)
-        else:
-            await interaction.response.send_message(f"{opponent.mention}, you've been challenged to a battle!", embed=embed, view=battle_view)
+        content = f"{opponent.mention}, you've been challenged to a battle!"
+        
+        if not interaction.response.is_done():
+            await interaction.response.send_message(content, embed=embed, view=battle_view)
             message = await interaction.original_response()
+        else:
+            message = await interaction.followup.send(content, embed=embed, view=battle_view)
         
         battle_view.message = message
         battle_view.check_task = asyncio.create_task(battle_view.check_ownership())
 
-    async def add(self, interaction: discord.Interaction, monster: BallInstance):
 
+    async def add(self, interaction: discord.Interaction, monster: BallInstance):
         if interaction.user.id not in self.active_battles:
-            return await interaction.response.send_message("You're not in an active battle.", ephemeral=True)
+            await self.send_message(interaction, "You're not in an active battle.", ephemeral=True)
+            return
         
+        if monster is None:
+            return
+
         battle_view = self.active_battles[interaction.user.id]
         
         if battle_view.cancelled:  
-            return await interaction.response.send_message("You can't add monsters after the battle has been canceled.", ephemeral=True)
+            await self.send_message(interaction, "You can't add monsters after the battle has been canceled.", ephemeral=True)
+            return
 
         if battle_view.battle_in_progress:
-            return await interaction.response.send_message("A battle is in progress. You can't add monsters now.", ephemeral=True)
+            await self.send_message(interaction, "A battle is in progress. You can't add monsters now.", ephemeral=True)
+            return
 
         if len(battle_view.decks[interaction.user.id]) >= 3:
-            return await interaction.response.send_message("You can't add more than 3 monsters to your deck.", ephemeral=True)
+            await self.send_message(interaction, "You can't add more than 3 monsters to your deck.", ephemeral=True)
+            return
 
         if any(m.pk == monster.pk for m in battle_view.decks[interaction.user.id]):
-            return await interaction.response.send_message("You've already added this monster to your deck.", ephemeral=True)
+            await self.send_message(interaction, "You've already added this monster to your deck.", ephemeral=True)
+            return
 
         battle_view.decks[interaction.user.id].append(monster)
         battle_view.ready[interaction.user.id] = False 
         await battle_view.update_message()
         emoji = battle_view.get_emoji(monster)
-        await interaction.response.send_message(f"Added {emoji} {monster.countryball.country} (ATK: {monster.attack} | HP: {monster.health}) to your deck.", ephemeral=True)
-
+        await self.send_message(interaction, f"Added {emoji} {monster.countryball.country} (ATK: {monster.attack} | HP: {monster.health}) to your deck.", ephemeral=True)
+    
     async def remove(self, interaction: discord.Interaction, monster: BallInstance):
-
         if interaction.user.id not in self.active_battles:
-            return await interaction.response.send_message("You're not in an active battle.", ephemeral=True)
+            await self.send_message(interaction, "You're not in an active battle.", ephemeral=True)
+            return
         
+        if monster is None:
+            return
+
         battle_view = self.active_battles[interaction.user.id]
         
         if battle_view.cancelled: 
-            return await interaction.response.send_message("You can't remove monsters after the battle has been canceled.", ephemeral=True)
+            await self.send_message(interaction, "You can't remove monsters after the battle has been canceled.", ephemeral=True)
+            return
 
         if battle_view.battle_in_progress:
-            return await interaction.response.send_message("A battle is in progress. You can't remove monsters now.", ephemeral=True)
+            await self.send_message(interaction, "A battle is in progress. You can't remove monsters now.", ephemeral=True)
+            return
 
         user_deck = battle_view.decks[interaction.user.id]
         
@@ -513,12 +525,10 @@ class Battle(commands.Cog):
                 battle_view.ready[interaction.user.id] = False 
                 await battle_view.update_message()
                 emoji = battle_view.get_emoji(ball)
-                return await interaction.response.send_message(f"Removed {emoji} {ball.countryball.country} (ATK: {ball.attack} | HP: {ball.health}) from your deck.", ephemeral=True)
+                await self.send_message(interaction, f"Removed {emoji} {ball.countryball.country} (ATK: {ball.attack} | HP: {ball.health}) from your deck.", ephemeral=True)
+                return
 
-        await interaction.response.send_message("That monster is not in your battle deck.", ephemeral=True)
-
-
-
+        await self.send_message(interaction, "That monster is not in your battle deck.", ephemeral=True)
 
     def remove_battle(self, battle_view: BattleView):
         for player_id in [battle_view.starter.id, battle_view.other_player.id]:
