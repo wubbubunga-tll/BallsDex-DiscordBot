@@ -32,8 +32,8 @@ class Training(commands.Cog):
 
         if user_id in self.last_training_times:
             last_training_time = self.last_training_times[user_id]
-            if now - last_training_time < timedelta(hours=12):
-                remaining_time = timedelta(hours=12) - (now - last_training_time)
+            if now - last_training_time < timedelta(hours=3):
+                remaining_time = timedelta(hours=3) - (now - last_training_time)
                 hours, remainder = divmod(remaining_time.seconds, 3600)
                 minutes, seconds = divmod(remainder, 60)
                 

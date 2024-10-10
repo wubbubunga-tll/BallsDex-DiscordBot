@@ -58,7 +58,6 @@ class CountryballNamePrompt(Modal, title=f"Catch this {settings.collectible_name
             )
 
     async def on_submit(self, interaction: discord.Interaction["BallsDexBot"]):
-        # TODO: use lock
         await interaction.response.defer(thinking=True)
 
         player, _ = await Player.get_or_create(discord_id=interaction.user.id)
@@ -107,7 +106,7 @@ class CountryballNamePrompt(Modal, title=f"Catch this {settings.collectible_name
             self.button.disabled = True
             await interaction.followup.edit_message(self.ball.message.id, view=self.button.view)
         else:
-            await interaction.response.send_message(f"{interaction.user.mention} \n Wrong name: {self.name.value}")
+            await interaction.followup.send(f"{interaction.user.mention} \nWrong name: {self.name.value}")
 
     async def catch_ball(
         self, bot: "BallsDexBot", user: discord.Member

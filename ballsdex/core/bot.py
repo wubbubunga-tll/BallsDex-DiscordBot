@@ -46,7 +46,8 @@ if TYPE_CHECKING:
 log = logging.getLogger("ballsdex.core.bot")
 http_counter = Histogram("discord_http_requests", "HTTP requests", ["key", "code"])
 
-PACKAGES = ["config", "players", "countryballs", "info", "admin", "trade", "balls", "rarity", "claim", "leaderboard", "suggest_ability", "training"]
+PACKAGES = ["config", "players", "countryballs", "info", "admin", "trade", "balls", "rarity", "claim", "leaderboard", "suggest_ability",
+            "training", "battle"]
 
 
 def owner_check(ctx: commands.Context[BallsDexBot]):
