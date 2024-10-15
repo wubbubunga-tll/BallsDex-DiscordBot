@@ -17,7 +17,7 @@ class Training(commands.Cog):
     @app_commands.checks.cooldown(1, 3) 
     async def train(self, interaction: discord.Interaction, monster: BallInstanceTransform):
         """
-        Train one of your monsters to increase its stats - Made by Venus
+        Train one of your monsters to increase its stats - made by Venus
 
         Parameters
         ----------
