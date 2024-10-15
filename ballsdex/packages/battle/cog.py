@@ -386,7 +386,7 @@ class Battle(commands.Cog):
 
                 @battle_group.command(name="start")
                 async def battle_start(interaction: discord.Interaction, opponent: discord.Member):
-                    """Start a battle with another player."""
+                    """Start a battle with another player - made by Venus"""
                     await self.battle(interaction, opponent)
 
                 @battle_group.command(name="add")
