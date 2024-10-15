@@ -52,6 +52,9 @@ def get_scaled_font_size(text: str, max_width: int, max_height: int, font_path: 
     return font_size, wrapped_text
 
 def draw_card(ball_instance: "BallInstance"):
+    def remove_leading_space(text):
+        return text.lstrip()
+
     ball = ball_instance.countryball
     ball_health = (237, 115, 101, 255)
 
@@ -67,9 +70,9 @@ def draw_card(ball_instance: "BallInstance"):
     icon = Image.open("." + ball.cached_economy.icon).convert("RGBA") if ball.cached_economy else None
 
     draw = ImageDraw.Draw(image)
-    draw.text((50, 20), ball.short_name or ball.country, font=title_font)
+    draw.text((50, 20), remove_leading_space(ball.short_name or ball.country), font=title_font)
 
-    ability_text = f"Ability: {ball.capacity_name}"
+    ability_text = f"Ability: {remove_leading_space(ball.capacity_name)}"
     ability_font_size, wrapped_ability = get_scaled_font_size(
         ability_text,
         RECTANGLE_WIDTH - 150,
@@ -81,7 +84,7 @@ def draw_card(ball_instance: "BallInstance"):
     dynamic_ability_font = ImageFont.truetype(str(SOURCES_PATH / "Hobeaux-Bold.ttf"), ability_font_size)
 
     desc_font_size, wrapped_desc = get_scaled_font_size(
-        ball.capacity_description,
+        remove_leading_space(ball.capacity_description),
         RECTANGLE_WIDTH - 120,
         300,
         SOURCES_PATH / "CooperFiveOpti-Black.ttf",
@@ -97,9 +100,7 @@ def draw_card(ball_instance: "BallInstance"):
             (50, ability_y + (i * ability_font_size * line_spacing)),
             line,
             font=dynamic_ability_font,
-            fill=(230, 230, 230, 255),
-            stroke_width=2,
-            stroke_fill=(0, 0, 0, 255)
+            fill=(230, 230, 230, 255)
         )
 
     desc_y = ability_y + (len(wrapped_ability) * ability_font_size * line_spacing) + 50
@@ -108,18 +109,14 @@ def draw_card(ball_instance: "BallInstance"):
         draw.text(
             (50, desc_y + (i * desc_font_size * desc_spacing)),
             line,
-            font=dynamic_desc_font,
-            stroke_width=1,
-            stroke_fill=(0, 0, 0, 255)
+            font=dynamic_desc_font
         )
 
     draw.text(
         (320, 1670),
         str(ball_instance.health),
         font=stats_font,
-        fill=ball_health,
-        stroke_width=1,
-        stroke_fill=(0, 0, 0, 255)
+        fill=ball_health
     )
 
     draw.text(
@@ -127,8 +124,6 @@ def draw_card(ball_instance: "BallInstance"):
         str(ball_instance.attack),
         font=stats_font,
         fill=(252, 194, 76, 255),
-        stroke_width=1,
-        stroke_fill=(0, 0, 0, 255),
         anchor="ra"
     )
 
@@ -136,9 +131,7 @@ def draw_card(ball_instance: "BallInstance"):
         (30, 1847),
         "FanmadeDex owned by Venus\nBallsDex created by El Laggron\n" + f"Monster owner: {ball.credits}",
         font=credits_font,
-        fill=(0, 0, 0, 255),
-        stroke_width=0,
-        stroke_fill=(255, 255, 255, 255)
+        fill=(0, 0, 0, 255)
     )
 
     artwork = Image.open("." + ball.collection_card).convert("RGBA")

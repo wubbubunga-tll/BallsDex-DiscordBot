@@ -195,6 +195,18 @@ class BallsDexBot(commands.AutoShardedBot):
         balls.clear()
         for ball in await Ball.all():
             balls[ball.pk] = ball
+            catch_names = ball.catch_names.split(';') if ball.catch_names else []
+            catch_names = [name.strip().lower() for name in catch_names]
+            
+            if ball.country.lower() not in catch_names:
+                catch_names.append(ball.country.lower())
+            
+            if ball.short_name and ball.short_name.lower() not in catch_names:
+                catch_names.append(ball.short_name.lower())
+            
+            ball.catch_names = ';'.join(filter(None, catch_names))
+            await ball.save()
+
         table.add_row(settings.collectible_name.title() + "s", str(len(balls)))
 
         regimes.clear()
