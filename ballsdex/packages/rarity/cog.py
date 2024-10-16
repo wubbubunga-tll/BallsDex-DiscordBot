@@ -21,7 +21,7 @@ class Rarity(commands.GroupCog, group_name="rarity"):
     @app_commands.command(description="View the rarity list of the dex - created by Venus")
     @app_commands.describe(
         descending="If true, list goes from common to rare. If false, rare to common.",
-        monsters_per_page="Number of monsters to show per page)"
+        monsters_per_page="Number of monsters to show per page."
     )
     @app_commands.checks.cooldown(1, 10)
     async def list(
