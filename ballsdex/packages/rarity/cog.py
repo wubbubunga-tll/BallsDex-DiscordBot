@@ -12,21 +12,28 @@ def format_rarity(rarity: float) -> str:
     elif rarity >= 0.1:
         return f"{rarity:.2f}%"
     else:
-        return f"{rarity:.6f}%"
+        return f"{rarity:.{max(3, -int(rarity.as_integer_ratio()[1].bit_length() / 3.32) + 1)}f}%"
 
 class Rarity(commands.GroupCog, group_name="rarity"):
     def __init__(self, bot):
         self.bot = bot
-        self.monsters_per_page = 6
 
     @app_commands.command(description="View the rarity list of the dex - created by Venus")
-    @app_commands.describe(descending="If true, list goes from most common to rarest. If false, rarest to most common.")
+    @app_commands.describe(
+        descending="If true, list goes from common to rare. If false, rare to common.",
+        monsters_per_page="Number of monsters to show per page)"
+    )
     @app_commands.checks.cooldown(1, 10)
-    async def list(self, interaction: discord.Interaction, descending: bool = False):
+    async def list(
+        self, 
+        interaction: discord.Interaction, 
+        descending: bool = False, 
+        monsters_per_page: app_commands.Range[int, 5, 15] = 6
+    ):
         await interaction.response.defer(thinking=True)
 
         sorted_balls = sorted(
-            balls.values(),
+            [ball for ball in balls.values() if ball.enabled],
             key=lambda x: (x.rarity, x.country.lower()),
             reverse=not descending
         )
@@ -40,7 +47,7 @@ class Rarity(commands.GroupCog, group_name="rarity"):
                 f"Rarity: {format_rarity(ball.rarity)}"
             ))
 
-        source = FieldPageSource(entries, per_page=self.monsters_per_page)
+        source = FieldPageSource(entries, per_page=monsters_per_page)
         source.embed.title = f"{settings.bot_name} Rarity List"
         source.embed.description = "Sorted from most common to rarest" if descending else "Sorted from rarest to most common"
         source.embed.color = discord.Color.blurple()
@@ -59,6 +66,13 @@ class Rarity(commands.GroupCog, group_name="rarity"):
         monster: app_commands.Transform[Ball, BallTransform],
         shiny: bool = False,
     ):
+        if not monster.enabled:
+            await interaction.response.send_message(
+                f"The monster {monster.country} is currently disabled.",
+                ephemeral=True
+            )
+            return
+
         rarity = monster.rarity
         
         if shiny:
