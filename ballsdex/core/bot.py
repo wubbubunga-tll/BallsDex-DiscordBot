@@ -37,6 +37,7 @@ from ballsdex.core.models import (
     economies,
     regimes,
     specials,
+    lower_catch_names,
 )
 from ballsdex.settings import settings
 
@@ -215,7 +216,7 @@ class BallsDexBot(commands.AutoShardedBot):
             if ball.short_name and ball.short_name.lower() not in catch_names:
                 catch_names.append(ball.short_name.lower())
             
-            ball.catch_names = ';'.join(filter(None, catch_names))
+            ball.catch_names = ';'.join(filter(None, set(catch_names)))
             await ball.save()
 
         table.add_row(settings.collectible_name.title() + "s", str(len(balls)))

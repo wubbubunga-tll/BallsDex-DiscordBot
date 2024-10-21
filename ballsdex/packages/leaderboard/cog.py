@@ -1,10 +1,10 @@
+import asyncio
 import discord
 from discord import app_commands
 from discord.ext import commands
 from tortoise.functions import Count
 from tortoise.expressions import Q
 from typing import List, Tuple
-import asyncio
 import time
 
 from ballsdex.core.models import Player, BallInstance
@@ -29,6 +29,17 @@ class Leaderboard(commands.Cog):
         self.leaderboard_cache["all"] = [(int(player.discord_id), player.monster_count) for player in all_players]
         self.leaderboard_cache["shiny"] = [(int(player.discord_id), player.shiny_count) for player in shiny_players]
         self.last_update = time.time()
+
+    async def fetch_user_with_retry(self, user_id: int, max_retries: int = 3) -> discord.User | None:
+        for _ in range(max_retries):
+            try:
+                return await self.bot.fetch_user(user_id)
+            except discord.HTTPException as e:
+                if e.status == 429:  
+                    await asyncio.sleep(1.5) 
+                else:
+                    return None  
+        return None  
 
     @app_commands.command()
     @app_commands.checks.cooldown(1, 10)
@@ -86,12 +97,13 @@ class Leaderboard(commands.Cog):
             ))
 
         if user_ids_to_fetch:
-            fetched_users = await asyncio.gather(*[self.bot.fetch_user(uid) for uid in user_ids_to_fetch])
-            for user in fetched_users:
-                for i, (entry_title, entry_value) in enumerate(entries):
-                    if f"Unknown User ({user.id})" in entry_title:
-                        entries[i] = (entry_title.replace(f"Unknown User ({user.id})", user.name), entry_value)
-                        break
+            for user_id in user_ids_to_fetch:
+                user = await self.fetch_user_with_retry(user_id)
+                if user:
+                    for i, (entry_title, entry_value) in enumerate(entries):
+                        if f"Unknown User ({user.id})" in entry_title:
+                            entries[i] = (entry_title.replace(f"Unknown User ({user.id})", user.name), entry_value)
+                            break
 
         source = FieldPageSource(entries, per_page=10)
         
@@ -109,9 +121,5 @@ class Leaderboard(commands.Cog):
         pages = Pages(source=source, interaction=interaction, compact=True)
         await pages.start()
 
-    @commands.Cog.listener()
-    async def on_ballsdex_settings_change(self, guild: discord.Guild, channel: discord.TextChannel | None = None, enabled: bool | None = None):
-        await self.update_leaderboard_cache()
-
-def setup(bot):
-    bot.add_cog(Leaderboard(bot))
+async def setup(bot):
+    await bot.add_cog(Leaderboard(bot))

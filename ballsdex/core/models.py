@@ -41,7 +41,7 @@ async def lower_catch_names(
     if instance.short_name and instance.short_name.lower() not in catch_names:
         catch_names.append(instance.short_name.lower())
     
-    instance.catch_names = ";".join(filter(None, catch_names))
+    instance.catch_names = ";".join(filter(None, set(catch_names)))
 
 
 async def lower_translations(

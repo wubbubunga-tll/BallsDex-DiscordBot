@@ -482,6 +482,7 @@ class Admin(commands.GroupCog):
         interaction: discord.Interaction,
         countryball: BallTransform | None = None,
         channel: discord.TextChannel | None = None,
+        channel_id: str | None = None,
         n: int = 1,
     ):
         """
@@ -493,6 +494,8 @@ class Admin(commands.GroupCog):
             The countryball you want to spawn. Random according to rarities if not specified.
         channel: discord.TextChannel | None
             The channel you want to spawn the countryball in. Current channel if not specified.
+        channel_id: str | None
+            The ID of the channel you want to spawn the countryball in, if not using channel parameter.
         n: int
             The number of countryballs to spawn. If no countryball was specified, it's random
             every time.
@@ -514,16 +517,35 @@ class Admin(commands.GroupCog):
             )
             return
 
+        # Determine the target channel
+        if channel_id:
+            channel = self.bot.get_channel(int(channel_id))
+            if not channel:
+                try:
+                    channel = await self.bot.fetch_channel(int(channel_id))
+                except discord.NotFound:
+                    await interaction.response.send_message(
+                        f"Channel with ID {channel_id} not found.", ephemeral=True
+                    )
+                    return
+        elif not channel:
+            channel = interaction.channel
+
+        if not isinstance(channel, (discord.TextChannel, discord.Thread)):
+            await interaction.response.send_message(
+                "The specified channel is not a text channel or thread.", ephemeral=True
+            )
+            return
+
         if n > 1:
             await self._spawn_bomb(
-                interaction, countryball, channel or interaction.channel, n  # type: ignore
+                interaction, countryball, channel, n
             )
             await log_action(
                 f"{interaction.user} spawned {settings.collectible_name}"
-                f" {countryball or 'random'} {n} times in {channel or interaction.channel}.",
+                f" {countryball or 'random'} {n} times in <#{channel.id}> {channel.name}.",
                 self.bot,
             )
-
             return
 
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -531,15 +553,15 @@ class Admin(commands.GroupCog):
             ball = await CountryBall.get_random()
         else:
             ball = CountryBall(countryball)
-        result = await ball.spawn(channel or interaction.channel)  # type: ignore
+        result = await ball.spawn(channel)
 
         if result:
             await interaction.followup.send(
-                f"{settings.collectible_name.title()} spawned.", ephemeral=True
+                f"{settings.collectible_name.title()} spawned in <#{channel.id}> {channel.name}.", ephemeral=True
             )
             await log_action(
                 f"{interaction.user} spawned {settings.collectible_name} {ball.name} "
-                f"in {channel or interaction.channel}.",
+                f"in <#{channel.id}> {channel.name}.",
                 self.bot,
             )
 
