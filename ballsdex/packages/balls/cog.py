@@ -294,7 +294,7 @@ class Balls(commands.GroupCog, group_name=settings.players_group_cog_name):
             if y.enabled and y.regime_id != 16
         }
 
-  
+
         filters = {"player__discord_id": user_obj.id, "ball__enabled": True}
         if special:
             filters["special"] = special
@@ -319,6 +319,8 @@ class Balls(commands.GroupCog, group_name=settings.players_group_cog_name):
             .distinct()
             .values_list("ball_id")
         )
+
+        valid_owned = owned_countryballs.intersection(bot_countryballs.keys())
 
         entries: list[tuple[str, str]] = []
 
@@ -347,15 +349,15 @@ class Balls(commands.GroupCog, group_name=settings.players_group_cog_name):
                 else:
                     entries.append((f"__**{title}**__", buffer))
 
-        if owned_countryballs:
+        if valid_owned:
             fill_fields(
                 f"Owned {settings.plural_collectible_name}",
-                set(bot_countryballs[x] for x in owned_countryballs),
+                set(bot_countryballs[x] for x in valid_owned),
             )
         else:
             entries.append((f"__**Owned {settings.plural_collectible_name}**__", "Nothing yet."))
 
-        if missing := set(y for x, y in bot_countryballs.items() if x not in owned_countryballs):
+        if missing := set(y for x, y in bot_countryballs.items() if x not in valid_owned):
             fill_fields(f"Missing {settings.plural_collectible_name}", missing)
         else:
             entries.append(
@@ -371,7 +373,7 @@ class Balls(commands.GroupCog, group_name=settings.players_group_cog_name):
         shiny_str = " shiny" if shiny else ""
         source.embed.description = (
             f"{settings.bot_name}{special_str}{shiny_str} progression: "
-            f"**{round(len(owned_countryballs) / len(bot_countryballs) * 100, 1)}%**"
+            f"**{round(len(valid_owned) / len(bot_countryballs) * 100, 1)}%**"
         )
         source.embed.colour = discord.Colour.blurple()
         source.embed.set_author(name=user_obj.display_name, icon_url=user_obj.display_avatar.url)
