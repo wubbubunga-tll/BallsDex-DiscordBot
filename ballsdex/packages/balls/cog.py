@@ -286,18 +286,22 @@ class Balls(commands.GroupCog, group_name=settings.players_group_cog_name):
 
             if await inventory_privacy(self.bot, interaction, player, user_obj) is False:
                 return
-        # Filter disabled balls, they do not count towards progression
-        # Only ID and emoji is interesting for us
-        bot_countryballs = {x: y.emoji_id for x, y in balls.items() if y.enabled}
+                
 
-        # Set of ball IDs owned by the player
+        bot_countryballs = {
+            x: y.emoji_id 
+            for x, y in balls.items() 
+            if y.enabled and y.regime_id != 16
+        }
+
+  
         filters = {"player__discord_id": user_obj.id, "ball__enabled": True}
         if special:
             filters["special"] = special
             bot_countryballs = {
                 x: y.emoji_id
                 for x, y in balls.items()
-                if y.enabled and y.created_at < special.end_date
+                if y.enabled and y.created_at < special.end_date and y.regime_id != 16
             }
         if not bot_countryballs:
             await interaction.followup.send(
@@ -312,14 +316,13 @@ class Balls(commands.GroupCog, group_name=settings.players_group_cog_name):
         owned_countryballs = set(
             x[0]
             for x in await BallInstance.filter(**filters)
-            .distinct()  # Do not query everything
+            .distinct()
             .values_list("ball_id")
         )
 
         entries: list[tuple[str, str]] = []
 
         def fill_fields(title: str, emoji_ids: set[int]):
-            # check if we need to add "(continued)" to the field name
             first_field_added = False
             buffer = ""
 
@@ -330,7 +333,6 @@ class Balls(commands.GroupCog, group_name=settings.players_group_cog_name):
 
                 text = f"{emoji} "
                 if len(buffer) + len(text) > 1024:
-                    # hitting embed limits, adding an intermediate field
                     if first_field_added:
                         entries.append(("\u200B", buffer))
                     else:
@@ -339,14 +341,13 @@ class Balls(commands.GroupCog, group_name=settings.players_group_cog_name):
                     buffer = ""
                 buffer += text
 
-            if buffer:  # add what's remaining
+            if buffer:
                 if first_field_added:
                     entries.append(("\u200B", buffer))
                 else:
                     entries.append((f"__**{title}**__", buffer))
 
         if owned_countryballs:
-            # Getting the list of emoji IDs from the IDs of the owned countryballs
             fill_fields(
                 f"Owned {settings.plural_collectible_name}",
                 set(bot_countryballs[x] for x in owned_countryballs),
@@ -363,7 +364,7 @@ class Balls(commands.GroupCog, group_name=settings.players_group_cog_name):
                     "congratulations! :tada:**__",
                     "\u200B",
                 )
-            )  # force empty field value
+            )
 
         source = FieldPageSource(entries, per_page=5, inline=False, clear_description=False)
         special_str = f" ({special.name})" if special else ""
@@ -377,6 +378,7 @@ class Balls(commands.GroupCog, group_name=settings.players_group_cog_name):
 
         pages = Pages(source=source, interaction=interaction, compact=True)
         await pages.start()
+
 
     @app_commands.command()
     @app_commands.checks.cooldown(1, 5, key=lambda i: i.user.id)
