@@ -82,7 +82,9 @@ class CountryballNamePrompt(Modal, title=f"Catch this {settings.collectible_name
             possible_names += tuple(x.lower() for x in self.ball.model.translations.split(";"))
 
         if self.name.value.lower().strip() in possible_names:
+            self.button.label = "I was caught already!"
             self.ball.catched = True
+            
             ball, has_caught_before = await self.catch_ball(
                 interaction.client, cast(discord.Member, interaction.user)
             )
@@ -189,6 +191,7 @@ class CatchView(View):
 
     async def on_timeout(self):
         self.button.disabled = True
+        self.button.label = "I despawned..."
         if self.ball.message:
             try:
                 await self.ball.message.edit(view=self)

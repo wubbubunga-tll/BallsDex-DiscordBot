@@ -529,10 +529,7 @@ class Admin(commands.GroupCog):
         if n > 1:
             channel = self.get_channel(channel, channel_id)
             if channel is None:
-                await interaction.response.send_message(
-                    "The provided channel ID is invalid. Please try again.", ephemeral=True
-                )
-                return
+                channel = interaction.channel
             await self._spawn_bomb(
                 interaction, countryball, channel, n, no_rarity  # type: ignore
             )
@@ -555,10 +552,7 @@ class Admin(commands.GroupCog):
 
         channel = self.get_channel(channel, channel_id)
         if channel is None:
-            await interaction.followup.send(
-                "The provided channel ID is invalid. Please try again.", ephemeral=True
-            )
-            return
+            channel = interaction.channel
         result = await ball.spawn(channel)  # type: ignore
 
         if result:
