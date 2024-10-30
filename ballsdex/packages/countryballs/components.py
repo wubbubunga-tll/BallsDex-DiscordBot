@@ -191,7 +191,8 @@ class CatchView(View):
 
     async def on_timeout(self):
         self.button.disabled = True
-        self.button.label = "I despawned..."
+        if not self.ball.catched:
+            self.button.label = "I despawned..."
         if self.ball.message:
             try:
                 await self.ball.message.edit(view=self)
