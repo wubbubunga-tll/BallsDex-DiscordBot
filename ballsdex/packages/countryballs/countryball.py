@@ -28,6 +28,14 @@ class CountryBall:
         rarities = [x.rarity for x in countryballs]
         cb = random.choices(population=countryballs, weights=rarities, k=1)[0]
         return cls(cb)
+    
+    @classmethod
+    async def get_random_norarity(cls):
+        countryballs = list(filter(lambda m: m.enabled, balls.values()))
+        if not countryballs:
+            raise RuntimeError("No ball to spawn")
+        cb = random.choice(countryballs)
+        return cls(cb)
 
     async def spawn(self, channel: discord.TextChannel) -> bool:
         """

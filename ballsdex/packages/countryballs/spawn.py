@@ -5,8 +5,11 @@ from collections import deque, namedtuple
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import cast
+import random
 
 import discord
+from discord import app_commands 
+from discord.ext import commands
 
 from ballsdex.packages.countryballs.countryball import CountryBall
 
@@ -85,10 +88,122 @@ class SpawnCooldown:
 
 @dataclass
 class SpawnManager:
-    cooldowns: dict[int, SpawnCooldown] = field(default_factory=dict)
-    cache: dict[int, int] = field(default_factory=dict)
+    """
+    Manages the spawning of countryballs in guilds.
+    
+    cooldowns: dict[int, SpawnCooldown]
+        A dictionary of guild IDs and their spawn cooldowns
+    cache: dict[int, int]
+        A dictionary of guild IDs and their spawn channel IDs
+    swarm_sizes: dict[int, float]
+        A dictionary of swarm sizes and their spawn probabilities
+    swarm_chance: float
+        The fixed probability of a swarm occurring (5%)
+    """
+    def __init__(self):
+        self.cooldowns: dict[int, SpawnCooldown] = {}
+        self.cache: dict[int, int] = {}
+        self.swarm_sizes = {
+            2: 0.25, 
+            3: 0.40, 
+            4: 0.20, 
+            5: 0.10, 
+            6: 0.05,  
+        }
+        self.swarm_chance: float = 0.05  # Set fixed 5% chance for swarm
+
+    async def spawn_countryball(self, guild: discord.Guild) -> bool:
+        """
+        Spawn a single countryball in a guild.
+
+        Parameters
+        ----------
+        guild: discord.Guild
+            The guild to spawn the countryball in.
+
+        Returns
+        -------
+        bool
+            Whether the spawn was successful
+        """
+        channel = guild.get_channel(self.cache[guild.id])
+        if not channel:
+            log.warning(f"Lost channel {self.cache[guild.id]} for guild {guild.name}.")
+            del self.cache[guild.id]
+            return False
+        ball = await CountryBall.get_random()
+        success = await ball.spawn(cast(discord.TextChannel, channel))
+        
+        return success
+
+    async def spawn_swarm(self, channel: discord.TextChannel) -> bool:
+        """
+        Spawn a swarm of countryballs in the given channel.
+        
+        Parameters
+        ----------
+        channel: discord.TextChannel
+            The channel to spawn the swarm in
+            
+        Returns
+        -------
+        bool
+            Whether the spawn was successful
+        """
+        swarm_size = random.choices(
+            list(self.swarm_sizes.keys()),
+            weights=list(self.swarm_sizes.values()),
+            k=1
+        )[0]
+        
+        try:
+            permissions = channel.permissions_for(channel.guild.me)
+            if not (permissions.send_messages and permissions.embed_links):
+                log.warning(f"Missing permissions to spawn swarm in channel {channel}.")
+                return False
+                
+            await channel.send(
+                f"# 🪺 *A swarm of * ***{swarm_size}*** *monsters is approaching!* 🪺"
+            )
+            
+            await asyncio.sleep(1)
+            
+            regular_spawns = swarm_size - 1 if swarm_size >= 4 else swarm_size
+            
+            for i in range(regular_spawns):
+                ball = await CountryBall.get_random()
+                success = await ball.spawn(channel)
+                if not success:
+                    return False
+                await asyncio.sleep(0.5)  
+            
+            if swarm_size >= 4:
+                ball = await CountryBall.get_random_norarity()
+                success = await ball.spawn(channel)
+                if not success:
+                    return False
+            
+            return True
+            
+        except discord.Forbidden:
+            log.error(f"Missing permission to spawn swarm in channel {channel}.")
+            return False
+        except discord.HTTPException:
+            log.error("Failed to spawn swarm", exc_info=True)
+            return False
 
     async def handle_message(self, message: discord.Message):
+        """
+        Handle a message and possibly trigger a spawn.
+
+        This checks the guild's cooldown and may trigger a spawn if conditions are met.
+        Takes into account the server's member count and time since last spawn.
+
+        Parameters
+        ----------
+        message: discord.Message
+            The message that triggered this check
+        """
         guild = message.guild
         if not guild:
             return
@@ -99,7 +214,6 @@ class SpawnManager:
             self.cooldowns[guild.id] = cooldown
 
         delta = (message.created_at - cooldown.time).total_seconds()
-        # change how the threshold varies according to the member count, while nuking farm servers
         if not guild.member_count:
             return
         elif guild.member_count < 5:
@@ -112,28 +226,23 @@ class SpawnManager:
             multiplier = 0.8
         chance = cooldown.chance - multiplier * (delta // 60)
 
-        # manager cannot be increased more than once per 5 seconds
         if not await cooldown.increase(message):
             return
 
-        # normal increase, need to reach goal
         if cooldown.amount <= chance:
             return
 
-        # at this point, the goal is reached
         if delta < 400:
-            # wait for at least 10 minutes before spawning
             return
 
-        # spawn countryball
         cooldown.reset(message.created_at)
-        await self.spawn_countryball(guild)
-
-    async def spawn_countryball(self, guild: discord.Guild):
         channel = guild.get_channel(self.cache[guild.id])
         if not channel:
             log.warning(f"Lost channel {self.cache[guild.id]} for guild {guild.name}.")
             del self.cache[guild.id]
             return
-        ball = await CountryBall.get_random()
-        await ball.spawn(cast(discord.TextChannel, channel))
+        
+        if random.random() < self.swarm_chance:
+            await self.spawn_swarm(cast(discord.TextChannel, channel))
+        else:
+            await self.spawn_countryball(guild)

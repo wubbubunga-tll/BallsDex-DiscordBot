@@ -428,6 +428,7 @@ class Admin(commands.GroupCog):
         countryball: Ball | None,
         channel: discord.TextChannel,
         n: int,
+        no_rarity: bool = False,
     ):
         spawned = 0
 
@@ -452,7 +453,10 @@ class Admin(commands.GroupCog):
         try:
             for i in range(n):
                 if not countryball:
-                    ball = await CountryBall.get_random()
+                    if no_rarity:
+                        ball = await CountryBall.get_random_norarity()
+                    else:
+                        ball = await CountryBall.get_random()
                 else:
                     ball = CountryBall(countryball)
                 result = await ball.spawn(channel)
@@ -484,6 +488,7 @@ class Admin(commands.GroupCog):
         channel: discord.TextChannel | None = None,
         channel_id: str | None = None,
         n: int = 1,
+        no_rarity: bool = False,
     ):
         """
         Force spawn a random or specified countryball.
@@ -495,10 +500,13 @@ class Admin(commands.GroupCog):
         channel: discord.TextChannel | None
             The channel you want to spawn the countryball in. Current channel if not specified.
         channel_id: str | None
-            The ID of the channel you want to spawn the countryball in, if not using channel parameter.
+            The ID of the channel you want to spawn the countryball in. Current channel if not specified.
         n: int
             The number of countryballs to spawn. If no countryball was specified, it's random
             every time.
+        no_rarity: bool
+            If True, spawns will be completely random ignoring rarity weights.
+            Only applies when no specific countryball is chosen.
         """
         # the transformer triggered a response, meaning user tried an incorrect input
         if interaction.response.is_done():
@@ -509,6 +517,7 @@ class Admin(commands.GroupCog):
                 "`n` must be superior or equal to 1.", ephemeral=True
             )
             return
+
         if n > 100:
             await interaction.response.send_message(
                 f"That doesn't seem reasonable to spawn {n} times, "
@@ -517,53 +526,60 @@ class Admin(commands.GroupCog):
             )
             return
 
-        # Determine the target channel
-        if channel_id:
-            channel = self.bot.get_channel(int(channel_id))
-            if not channel:
-                try:
-                    channel = await self.bot.fetch_channel(int(channel_id))
-                except discord.NotFound:
-                    await interaction.response.send_message(
-                        f"Channel with ID {channel_id} not found.", ephemeral=True
-                    )
-                    return
-        elif not channel:
-            channel = interaction.channel
-
-        if not isinstance(channel, (discord.TextChannel, discord.Thread)):
-            await interaction.response.send_message(
-                "The specified channel is not a text channel or thread.", ephemeral=True
-            )
-            return
-
         if n > 1:
+            channel = self.get_channel(channel, channel_id)
+            if channel is None:
+                await interaction.response.send_message(
+                    "The provided channel ID is invalid. Please try again.", ephemeral=True
+                )
+                return
             await self._spawn_bomb(
-                interaction, countryball, channel, n
+                interaction, countryball, channel, n, no_rarity  # type: ignore
             )
             await log_action(
                 f"{interaction.user} spawned {settings.collectible_name}"
-                f" {countryball or 'random'} {n} times in <#{channel.id}> {channel.name}.",
+                f" {countryball or 'random'} {n} times in {channel}.",
                 self.bot,
             )
             return
 
         await interaction.response.defer(ephemeral=True, thinking=True)
+
         if not countryball:
-            ball = await CountryBall.get_random()
+            if no_rarity:
+                ball = await CountryBall.get_random_norarity()
+            else:
+                ball = await CountryBall.get_random()
         else:
             ball = CountryBall(countryball)
-        result = await ball.spawn(channel)
+
+        channel = self.get_channel(channel, channel_id)
+        if channel is None:
+            await interaction.followup.send(
+                "The provided channel ID is invalid. Please try again.", ephemeral=True
+            )
+            return
+        result = await ball.spawn(channel)  # type: ignore
 
         if result:
             await interaction.followup.send(
-                f"{settings.collectible_name.title()} spawned in <#{channel.id}> {channel.name}.", ephemeral=True
+                f"{settings.collectible_name.title()} spawned.", ephemeral=True
             )
             await log_action(
                 f"{interaction.user} spawned {settings.collectible_name} {ball.name} "
-                f"in <#{channel.id}> {channel.name}.",
+                f"in {channel}.",
                 self.bot,
             )
+
+    def get_channel(self, channel: discord.TextChannel | None, channel_id: str | None) -> discord.TextChannel | None:
+        if channel:
+            return channel
+        if channel_id:
+            try:
+                return self.bot.get_channel(int(channel_id))
+            except (ValueError, TypeError):
+                return None
+        return None
 
     @balls.command()
     @app_commands.checks.has_any_role(*settings.root_role_ids)
