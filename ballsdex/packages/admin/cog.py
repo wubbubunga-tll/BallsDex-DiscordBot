@@ -93,6 +93,120 @@ class Admin(commands.GroupCog):
 
     @app_commands.command()
     @app_commands.checks.has_any_role(*settings.root_role_ids)
+    async def create_many(
+        self,
+        interaction: discord.Interaction,
+        names: str,
+        emoji_ids: str | None,
+        health: int,
+        attack: int,
+        rarity: float,
+        image: discord.Attachment,
+        regime: RegimeTransform,
+        credits: str,
+        economy: EconomyTransform | None = None,
+        capacity_name: str = "No ability",
+        capacity_description: str = "This monster does not have a special ability.",
+        enabled: bool = False,
+        tradeable: bool = True,
+    ) -> None:
+        """
+        Bulk create monsters from lists of names and emoji IDs.
+        
+        Parameters
+        ----------
+        names: str
+            List of names separated by commas
+        emoji_ids: str
+            List of emoji IDs separated by commas (optional, uses placeholder if not enough)
+        health: int
+            Default health for all balls
+        attack: int
+            Default attack for all balls
+        rarity: float
+            Default rarity for all balls 
+        image: discord.Attachment
+            Default image for all balls
+        regime: Regime
+            Default regime for all balls
+        credits: str
+            Image credits/attribution
+        economy: Economy | None
+            Default economy for all balls
+        capacity_name: str
+            Default ability name
+        capacity_description: str  
+            Default ability description
+        enabled: bool
+            Whether balls are enabled by default
+        tradeable: bool
+            Whether balls are tradeable by default
+        """
+        if regime is None or interaction.response.is_done():
+            return
+            
+        await interaction.response.defer(thinking=True)
+        
+        try:
+            image_path = await save_file(image)
+        except Exception as e:
+            log.exception("Failed saving file")
+            await interaction.followup.send(f"Failed saving file: {str(e)}")
+            return
+
+        created = 0
+        errors = []
+        names = [x.strip() for x in names.split(",")]
+        
+        emoji_list = []
+        if emoji_ids:
+            emoji_list = [x.strip() for x in emoji_ids.split(",")]
+            
+        while len(emoji_list) < len(names):
+            emoji_list.append("1293882244271964220")
+
+        for country, emoji_id in zip(names, emoji_list):
+            if not emoji_id.isnumeric():
+                emoji_id = "1293882244271964220"
+                
+            emoji = self.bot.get_emoji(int(emoji_id))
+            if not emoji and emoji_id != "1293882244271964220":
+                emoji_id = "1293882244271964220"
+                
+            try:
+                await Ball.create(
+                    country=country,
+                    short_name=country,
+                    regime=regime,
+                    economy=economy,
+                    health=health,
+                    attack=attack,
+                    rarity=rarity,
+                    enabled=enabled,
+                    tradeable=tradeable,
+                    emoji_id=emoji_id,
+                    wild_card="/" + str(image_path),
+                    collection_card="/" + str(image_path), 
+                    credits=credits,
+                    capacity_name=capacity_name,
+                    capacity_description=capacity_description,
+                )
+                created += 1
+            except Exception as e:
+                errors.append(f"{country}: {str(e)}")
+                
+        await self.bot.load_cache()
+        
+        response = f"Bulk creation complete\nCreated: {created}"
+        if errors:
+            response += "\n\nErrors:"
+            for error in errors:
+                response += f"\n{error}"
+                
+        await interaction.followup.send(response)
+
+    @app_commands.command()
+    @app_commands.checks.has_any_role(*settings.root_role_ids)
     async def status(
         self,
         interaction: discord.Interaction,
